@@ -3,6 +3,7 @@ package puppy.code;
 import com.badlogic.gdx.Gdx;
 import com.badlogic.gdx.Input;
 import com.badlogic.gdx.audio.Sound;
+import com.badlogic.gdx.graphics.Color;
 import com.badlogic.gdx.graphics.Texture;
 import com.badlogic.gdx.graphics.g2d.SpriteBatch;
 import com.badlogic.gdx.math.MathUtils;
@@ -17,6 +18,11 @@ public class Tarro extends EntidadJuego implements Sonoro {
     private boolean herido = false;
     private int tiempoHeridoMax = 50;
     private int tiempoHerido;
+
+    // Control del escudo
+    private boolean escudoActivo = false;
+    private float duracionEscudo = 0f; // en segundos
+    private final float duracionMaxEscudo = 5f; // duración total del escudo (5 segundos)
 
     public Tarro(Texture tex, Sound ss) {
         super(tex, 800 / 2f - 64 / 2f, 20); // posición inicial
@@ -37,14 +43,28 @@ public class Tarro extends EntidadJuego implements Sonoro {
     }
 
     public void dañar() {
+        if (escudoActivo) return; // No recibe daño si tiene escudo
+
         vidas--;
         herido = true;
         tiempoHerido = tiempoHeridoMax;
         sonidoHerido.play();
     }
 
+    // Activar el escudo
+    public void activarEscudo() {
+        escudoActivo = true;
+        duracionEscudo = duracionMaxEscudo;
+    }
+
     @Override
     public void dibujar(SpriteBatch batch) {
+        // Si el escudo está activo, dibuja el tarro con un leve parpadeo azul
+        if (escudoActivo) {
+            float alpha = 0.5f + 0.5f * MathUtils.sinDeg((duracionEscudo * 360) % 360);
+            batch.setColor(0.3f, 0.6f, 1f, alpha); // azul translúcido
+        }
+
         if (!herido)
             batch.draw(textura, bucket.x, bucket.y);
         else {
@@ -52,15 +72,28 @@ public class Tarro extends EntidadJuego implements Sonoro {
             tiempoHerido--;
             if (tiempoHerido <= 0) herido = false;
         }
+
+        batch.setColor(Color.WHITE); // Restaurar color normal
     }
 
     @Override
     public void actualizar(float delta) {
+        // Movimiento
         if (Gdx.input.isKeyPressed(Input.Keys.LEFT)) bucket.x -= velx * delta;
         if (Gdx.input.isKeyPressed(Input.Keys.RIGHT)) bucket.x += velx * delta;
         if (bucket.x < 0) bucket.x = 0;
         if (bucket.x > 800 - 64) bucket.x = 800 - 64;
+
+        // Actualizar duración del escudo
+        if (escudoActivo) {
+            duracionEscudo -= delta;
+            if (duracionEscudo <= 0) {
+                escudoActivo = false;
+            }
+        }
     }
+
+    public boolean tieneEscudo() { return escudoActivo; }
 
     @Override
     public void destruir() {
@@ -68,11 +101,9 @@ public class Tarro extends EntidadJuego implements Sonoro {
     }
 
     public boolean estaHerido() { return herido; }
-    
+
     @Override
-    public void pausarSonido() {
-    }
+    public void pausarSonido() {}
     @Override
-    public void continuarSonido() {
-    }
+    public void continuarSonido() {}
 }
